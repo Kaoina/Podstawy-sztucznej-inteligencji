@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from preprocessing import create_data_loaders, ArtStyleDataset
 import time
 from tqdm import tqdm
+from collections import Counter
 
 # # Własna architektura CNN
 class ArtStyleCNN(nn.Module):
@@ -12,33 +13,37 @@ class ArtStyleCNN(nn.Module):
         super(ArtStyleCNN, self).__init__()
 
         self.conv_layers = nn.Sequential(
-            nn.Conv2d(3, 32, kernel_size=3, padding=1),
-            nn.BatchNorm2d(32),
-            nn.ReLU(),
-            nn.MaxPool2d(2),
-
-            nn.Conv2d(32, 64, kernel_size=3, padding=1),
+            nn.Conv2d(3, 64, kernel_size=3, padding=1),
             nn.BatchNorm2d(64),
             nn.ReLU(),
-            nn.MaxPool2d(2),
+            nn.MaxPool2d(2),  # 112x112
 
             nn.Conv2d(64, 128, kernel_size=3, padding=1),
             nn.BatchNorm2d(128),
             nn.ReLU(),
-            nn.MaxPool2d(2)
-        )
+            nn.MaxPool2d(2),  # 56x56
 
-        # Oblicz dynamicznie rozmiar po konwolucjach
-        with torch.no_grad():
-            dummy_input = torch.zeros(1, 3, 224, 224)
-            dummy_output = self.conv_layers(dummy_input)
-            self.flattened_size = dummy_output.view(1, -1).shape[1]
+            nn.Conv2d(128, 256, kernel_size=3, padding=1),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+            nn.MaxPool2d(2),  # 28x28
+
+            nn.Conv2d(256, 512, kernel_size=3, padding=1),
+            nn.BatchNorm2d(512),
+            nn.ReLU(),
+            nn.MaxPool2d(2),  # 14x14
+
+            nn.Conv2d(512, 512, kernel_size=3, padding=1),
+            nn.BatchNorm2d(512),
+            nn.ReLU(),
+            nn.AdaptiveAvgPool2d((1, 1))  # wynik 1x1x512
+        )
 
         self.fc_layers = nn.Sequential(
             nn.Flatten(),
-            nn.Linear(self.flattened_size, 256),
+            nn.Linear(512, 256),
             nn.ReLU(),
-            nn.Dropout(0.3),
+            nn.Dropout(0.4),
             nn.Linear(256, num_classes)
         )
 
@@ -46,6 +51,7 @@ class ArtStyleCNN(nn.Module):
         x = self.conv_layers(x)
         x = self.fc_layers(x)
         return x
+
 
 
 # Funkcja walidacyjna
@@ -75,6 +81,21 @@ def evaluate_model(model, val_loader, device):
 
     acc = 100. * correct / total if total > 0 else 0.0
     print(f"🎯 Accuracy: {acc:.2f}%")
+
+    pred_counts = Counter()
+    with torch.no_grad():
+        for inputs, labels, _ in val_loader:
+            inputs = inputs.to(device)
+            outputs = model(inputs)
+            _, predicted = outputs.max(1)
+            pred_counts.update(predicted.cpu().numpy().tolist())
+
+    print("\n🔢 Rozkład przewidywanych klas na zbiorze walidacyjnym:")
+
+    for class_idx, count in sorted(pred_counts.items()):
+        class_name = val_loader.dataset.idx_to_label[class_idx]
+        print(f" - {class_name} ({class_idx}): {count} próbek")
+
     return acc
 
 # Funkcja treningowa
@@ -144,7 +165,7 @@ if __name__ == "__main__":
     print(torch.version.cuda)                    # np. '11.8' jeśli CUDA działa
     print(torch.cuda.is_available())             # True tylko jeśli działa GPU
     print("\n")
-    
+
     # ścieżki do katalogów
     input_directory = r"C:\Users\kkuro\Desktop\Studia\semestr_6\Podstawy_AI\DataSet"
     output_directory = r"C:\Users\kkuro\Desktop\Studia\semestr_6\Podstawy_AI\outData"
@@ -161,6 +182,10 @@ if __name__ == "__main__":
     split_dir = os.path.join(output_directory, "split")
 
     data_loaders = create_data_loaders(split_dir, batch_size=batch_size, img_size=img_size)
+
+    # 🔍 Debug: sprawdzenie poprawnej liczby klas i ich mapowania
+    print("Liczba klas:", len(data_loaders['train_dataset'].label_to_idx))
+    print("Mapowanie klas:", data_loaders['train_dataset'].label_to_idx)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Używane urządzenie: {device}")

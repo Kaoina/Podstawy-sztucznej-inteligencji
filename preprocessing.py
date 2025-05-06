@@ -13,33 +13,34 @@ import pandas as pd
 from collections import Counter
 
 class ArtStyleDataset(Dataset):
-    """
-    Dataset do pracy z obrazami podzielonymi według stylów artystycznych.
-    """
-    def __init__(self, data_dir, transform=None, mode='train'):
-       
+    def __init__(self, data_dir, transform=None, mode='train', label_to_idx=None):
         self.data_dir = Path(data_dir) / mode
         self.transform = transform
         self.mode = mode
         
         self.images = []
         self.labels = []
-        self.label_to_idx = {}
-        
+        self.label_to_idx = label_to_idx  # przekazana z zewnątrz
+
+        if self.label_to_idx is None:
+            raise ValueError("label_to_idx musi być przekazane z zewnątrz, aby zapewnić spójność klas.")
+
         for style_dir in self.data_dir.iterdir():
             if style_dir.is_dir():
                 style_name = style_dir.name
-                
+
                 if style_name not in self.label_to_idx:
-                    self.label_to_idx[style_name] = len(self.label_to_idx)
-                
+                    print(f"⚠️ Uwaga: styl '{style_name}' nie znajduje się w label_to_idx. Pomijam.")
+                    continue
+
+                label_idx = self.label_to_idx[style_name]
                 for img_path in style_dir.glob('*.jpg'):
                     self.images.append(str(img_path))
-                    self.labels.append(self.label_to_idx[style_name])
-        
+                    self.labels.append(label_idx)
+
         self.idx_to_label = {v: k for k, v in self.label_to_idx.items()}
-        print(f"Znaleziono {len(self.images)} obrazów w zbiorze {mode} z {len(self.label_to_idx)} klasami")
-    
+        print(f"[{mode}] Znaleziono {len(self.images)} obrazów w {len(self.label_to_idx)} klasach.")
+
     def __len__(self):
         return len(self.images)
     
@@ -60,6 +61,7 @@ class ArtStyleDataset(Dataset):
             label = 0
 
         return img, label, img_path
+
 
 def preprocess_images(input_dir, output_dir, target_size=(512, 512)):
     """
@@ -396,20 +398,24 @@ def plot_class_examples(dataset, num_examples=5):
 
 
 def create_data_loaders(data_dir, batch_size=32, img_size=224, num_workers=4):
-    """
-    Tworzy DataLoadery dla zbiorów treningowego, walidacyjnego i testowego.
-    """
-    # Transformacje dla zbioru treningowego (z augmentacją - odbicie lustrzane, rotacja)
+    def get_label_to_idx(data_dir):
+        train_dir = Path(data_dir) / 'train'
+        labels = sorted([d.name for d in train_dir.iterdir() if d.is_dir()])
+        return {label: idx for idx, label in enumerate(labels)}
+
+    # Spójna mapa etykiet
+    label_to_idx = get_label_to_idx(data_dir)
+
+    # Transformacje
     train_transform = transforms.Compose([
-    transforms.ToPILImage(),
-    transforms.Resize(img_size + 32),
-    transforms.CenterCrop(img_size),
-    transforms.RandomRotation(5),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
+        transforms.ToPILImage(),
+        transforms.Resize(img_size + 32),
+        transforms.CenterCrop(img_size),
+        transforms.RandomRotation(5),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
 
-    # Transformacje dla zbiorów walidacyjnego i testowego (bez augmentacji)
     val_test_transform = transforms.Compose([
         transforms.ToPILImage(),
         transforms.Resize(img_size + 32),
@@ -417,37 +423,17 @@ def create_data_loaders(data_dir, batch_size=32, img_size=224, num_workers=4):
         transforms.ToTensor(),
         transforms.Normalize(mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225])
     ])
-    
-    # Datasety
-    train_dataset = ArtStyleDataset(data_dir, transform=train_transform, mode='train')
-    val_dataset = ArtStyleDataset(data_dir, transform=val_test_transform, mode='val')
-    test_dataset = ArtStyleDataset(data_dir, transform=val_test_transform, mode='test')
-    
+
+    # Datasety z tą samą mapą etykiet
+    train_dataset = ArtStyleDataset(data_dir, transform=train_transform, mode='train', label_to_idx=label_to_idx)
+    val_dataset = ArtStyleDataset(data_dir, transform=val_test_transform, mode='val', label_to_idx=label_to_idx)
+    test_dataset = ArtStyleDataset(data_dir, transform=val_test_transform, mode='test', label_to_idx=label_to_idx)
+
     # DataLoadery
-    train_loader = DataLoader(
-        train_dataset, 
-        batch_size=batch_size, 
-        shuffle=True,
-        num_workers=0,
-        pin_memory=True
-    )
-    
-    val_loader = DataLoader(
-        val_dataset, 
-        batch_size=batch_size, 
-        shuffle=False,
-        num_workers=0,
-        pin_memory=True
-    )
-    
-    test_loader = DataLoader(
-        test_dataset, 
-        batch_size=batch_size, 
-        shuffle=False,
-        num_workers=0,
-        pin_memory=True
-    )
-    
+    train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, num_workers=num_workers, pin_memory=True)
+    val_loader = DataLoader(val_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True)
+    test_loader = DataLoader(test_dataset, batch_size=batch_size, shuffle=False, num_workers=num_workers, pin_memory=True)
+
     return {
         'train_loader': train_loader,
         'val_loader': val_loader,
@@ -458,6 +444,7 @@ def create_data_loaders(data_dir, batch_size=32, img_size=224, num_workers=4):
         'train_transform': train_transform,
         'val_test_transform': val_test_transform
     }
+
 
 
 # --- Wywołanie (opcjonalnie odkomentuj) ---
