@@ -7,6 +7,7 @@ import time
 from tqdm import tqdm
 from collections import Counter
 
+
 # # Własna architektura CNN
 class ArtStyleCNN(nn.Module):
     def __init__(self, num_classes):
@@ -166,13 +167,18 @@ if __name__ == "__main__":
     print(torch.cuda.is_available())             # True tylko jeśli działa GPU
     print("\n")
 
+    import sys
+    print(sys.executable)
+    print()
+
+
     # ścieżki do katalogów
-    input_directory = r"C:\Users\kkuro\Desktop\Studia\semestr_6\Podstawy_AI\DataSet"
-    output_directory = r"C:\Users\kkuro\Desktop\Studia\semestr_6\Podstawy_AI\outData"
+    input_directory = r"C:\Users\Dominik\Desktop\DataSet"
+    output_directory = r"C:\Users\Dominik\Desktop\outData"
 
     # Parametry
-    target_size = (512, 512)
     img_size = 224
+    
     batch_size = 32
     min_class_size = 2000
     max_class_size = 3000
