@@ -11,6 +11,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import precision_recall_fscore_support, confusion_matrix, classification_report
 import seaborn as sns
 import pandas as pd
+import torchvision.models as models
 
 # # Własna architektura CNN
 class ArtStyleCNN(nn.Module):
@@ -57,6 +58,12 @@ class ArtStyleCNN(nn.Module):
         x = self.fc_layers(x)
         return x
 
+def get_resnet_model(num_classes, pretrained=True):
+    model = models.resnet18(pretrained=pretrained)
+    num_ftrs = model.fc.in_features
+    model.fc = nn.Linear(num_ftrs, num_classes)  # zmieniamy ostatnią warstwę
+    return model
+
 
 # Funkcja do obliczania i wyświetlania macierzy pomyłek
 def plot_confusion_matrix(y_true, y_pred, classes, save_path=None):
@@ -79,7 +86,7 @@ def plot_confusion_matrix(y_true, y_pred, classes, save_path=None):
         plt.savefig(save_path)
         print(f"📊 Zapisano macierz pomyłek do {save_path}")
     
-    plt.show()
+    #plt.show()
 
 
 # Funkcja do rysowania wykresów strat i dokładności
@@ -112,7 +119,7 @@ def plot_training_history(train_losses, val_losses, train_accs, val_accs, save_p
         plt.savefig(save_path)
         print(f"📊 Zapisano wykresy do {save_path}")
     
-    plt.show()
+    #plt.show()
 
 
 # Rozszerzona funkcja ewaluacyjna z dodatkowymi metrykami
@@ -189,7 +196,7 @@ def evaluate_model(model, val_loader, device, calc_metrics=False):
         
         # Tworzenie macierzy pomyłek
         print("\n🧩 Tworzę macierz pomyłek...")
-        plot_confusion_matrix(all_labels, all_preds, class_names, save_path="confusion_matrix.png")
+        plot_confusion_matrix(all_labels, all_preds, class_names, save_path=f"{model_name}_confusion_matrix.png")
         
         # Tworzenie DataFrame z metrykami dla każdej klasy
         metrics_df = pd.DataFrame(
@@ -207,7 +214,7 @@ def evaluate_model(model, val_loader, device, calc_metrics=False):
 
 
 # Rozszerzona funkcja treningowa z zapisywaniem historii
-def train_model(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=10):
+def train_model(model, train_loader, val_loader, criterion, optimizer, device, num_epochs=10, model_name="model"):
     torch.autograd.set_detect_anomaly(True)
     model = model.to(device)
     
@@ -269,13 +276,13 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
         val_accs.append(val_acc)
         
         # Zapisanie modelu
-        torch.save(model.state_dict(), f"model_epoch_{epoch+1}.pt")
+        torch.save(model.state_dict(), f"{model_name}_epoch_{epoch+1}.pt")
         print(f"💾 Zapisano model po epoce {epoch+1}")
         
         # Zapisanie najlepszego modelu
         if val_acc > best_val_acc:
             best_val_acc = val_acc
-            torch.save(model.state_dict(), "best_model.pt")
+            torch.save(model.state_dict(), f"{model_name}_best_model.pt")
             print(f"🏆 Nowy najlepszy model z dokładnością {val_acc:.2f}%")
 
         print(f"Epoch time: {time.time() - start_time:.2f}s")
@@ -285,18 +292,18 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
         # Rysowanie wykresów dla aktualnego stanu treningu
         if (epoch + 1) % 3 == 0 or (epoch + 1) == num_epochs:  # Co 3 epoki lub po ostatniej
             plot_training_history(train_losses, val_losses, train_accs, val_accs, 
-                                  save_path=f"training_history_epoch_{epoch+1}.png")
+                                  save_path=f"{model_name}_training_history_epoch_{epoch+1}.png")
         
         print(f"✔️ Zakończono epokę {epoch+1}")
     
     # Końcowa ewaluacja z obliczeniem wszystkich metryk
     print("\n🏁 Ewaluacja końcowa modelu...")
     # Ładowanie najlepszego modelu
-    model.load_state_dict(torch.load("best_model.pt"))
+    model.load_state_dict(torch.load(f"{model_name}_best_model.pt"))
     final_results = evaluate_model(model, val_loader, device, calc_metrics=True)
     
     # Rysowanie finalnych wykresów
-    plot_training_history(train_losses, val_losses, train_accs, val_accs, save_path="final_training_history.png")
+    plot_training_history(train_losses, val_losses, train_accs, val_accs, save_path=f"{model_name}_final_training_history.png")
     
     # Zapisanie historii treningu do pliku CSV
     history_df = pd.DataFrame({
@@ -306,7 +313,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, n
         'Dokładność_treningowa': train_accs,
         'Dokładność_walidacyjna': val_accs
     })
-    history_df.to_csv('training_history.csv', index=False)
+    history_df.to_csv(f'{model_name}_training_history.csv', index=False)
     print("📊 Zapisano historię treningu do training_history.csv")
     
     return history_df, final_results
@@ -319,20 +326,15 @@ if __name__ == "__main__":
     print(torch.cuda.is_available())             # True tylko jeśli działa GPU
     print("\n")
 
-    import sys
-    print(sys.executable)
-    print()
-
     # ścieżki do katalogów
     input_directory = r"C:\Users\Dominik\Desktop\DataSet"
     output_directory = r"C:\Users\Dominik\Desktop\outData"
 
     # Parametry
     img_size = 224
-    
     batch_size = 32
-    min_class_size = 2000
-    max_class_size = 3000
+    num_epochs = 10 
+
 
     # Ścieżki wyjściowe
     processed_dir = os.path.join(output_directory, "processed")
@@ -348,28 +350,39 @@ if __name__ == "__main__":
     print(f"Używane urządzenie: {device}")
 
     num_classes = len(data_loaders['train_dataset'].label_to_idx)
-    model = ArtStyleCNN(num_classes)
 
-    criterion = nn.CrossEntropyLoss()
-    optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+    models_to_train = {
+        #"CustomCNN": ArtStyleCNN(num_classes),
+        "ResNet18_pretrained": get_resnet_model(num_classes, pretrained=True),
+        "ResNet18_scratch": get_resnet_model(num_classes, pretrained=False)
+    }
+    
+    for model_name, model in models_to_train.items():
+        print(f"\n🧠 Trenuję model: {model_name}")
+    
+        model = model.to(device)
+        criterion = nn.CrossEntropyLoss()
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
-    try:
-        history, final_metrics = train_model(model, 
-                                          data_loaders['train_loader'], 
-                                          data_loaders['val_loader'], 
-                                          criterion, optimizer, 
-                                          device, 
-                                          num_epochs=10)
-        print("✅ Trenowanie zakończone poprawnie.")
-        
-        # Wyświetlenie podsumowania końcowego
-        print("\n📋 Podsumowanie treningu:")
-        print(f"Najlepsza dokładność walidacyjna: {max(history['Dokładność_walidacyjna']):.2f}%")
-        print(f"Finalne metryki:")
-        print(f" - Accuracy: {final_metrics[0]:.2f}%")
-        print(f" - Precision: {final_metrics[2]:.4f}")
-        print(f" - Recall: {final_metrics[3]:.4f}")
-        print(f" - F1-Score: {final_metrics[4]:.4f}")
-        
-    except Exception as e:
-        print(f"❌ Błąd w train_model: {e}")
+        try:
+            history, final_metrics = train_model(model, 
+                                                data_loaders['train_loader'], 
+                                                data_loaders['val_loader'], 
+                                                criterion, optimizer, 
+                                                device, 
+                                                num_epochs=10,
+                                                model_name=model_name
+                                                )
+            print(f"✅ Trenowanie zakończone dla modelu {model_name}")
+            # Wyświetlenie podsumowania końcowego
+            print("\n📋 Podsumowanie treningu:")
+            print(f"Najlepsza dokładność walidacyjna: {max(history['Dokładność_walidacyjna']):.2f}%")
+            print(f"Finalne metryki:")
+            print(f" - Accuracy: {final_metrics[0]:.2f}%")
+            print(f" - Precision: {final_metrics[2]:.4f}")
+            print(f" - Recall: {final_metrics[3]:.4f}")
+            print(f" - F1-Score: {final_metrics[4]:.4f}")
+        except Exception as e:
+            print(f"❌ Błąd w modelu {model_name}: {e}")
+
+
