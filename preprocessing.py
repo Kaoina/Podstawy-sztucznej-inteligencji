@@ -449,19 +449,19 @@ def create_data_loaders(data_dir, batch_size=32, img_size=224, num_workers=4):
 
 # --- Wywołanie (opcjonalnie odkomentuj) ---
 # Ścieżki do katalogów
-#input_directory = r"C:\Users\kkuro\Desktop\Studia\semestr_6\Podstawy_AI\DataSet"
-#output_directory = r"C:\Users\kkuro\Desktop\Studia\semestr_6\Podstawy_AI\outData"
+input_directory = r"C:\Users\Dominik\Desktop\DataSet"
+output_directory = r"C:\Users\Dominik\Desktop\outData"
 
 # Parametry
-#target_size = (512, 512)
-#img_size = 224
-#batch_size = 32
-#min_class_size = 2000
-#max_class_size = 3000
+target_size = (512, 512)
+img_size = 224
+batch_size = 32
+min_class_size = 2000
+max_class_size = 3000
 
 # Ścieżki wyjściowe
-#processed_dir = os.path.join(output_directory, "processed")
-#split_dir = os.path.join(output_directory, "split")
+processed_dir = os.path.join(output_directory, "processed")
+split_dir = os.path.join(output_directory, "split")
 
 #print("\n--- ETAP 1: Preprocessing obrazów ---")
 #preprocess_images(input_directory, processed_dir, target_size=target_size)
@@ -485,7 +485,7 @@ def create_data_loaders(data_dir, batch_size=32, img_size=224, num_workers=4):
 #    split_dir,
 #    batch_size=batch_size,
 #    img_size=img_size
-#)
+# )
 
 # print("\n--- ETAP 5: Wizualizacja przykładów z każdej klasy ---")
 # plot_class_examples(data_loaders['train_dataset'])
