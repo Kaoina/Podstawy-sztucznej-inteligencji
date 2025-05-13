@@ -25,10 +25,9 @@ if __name__ == "__main__":
     # Parametry
     img_size = 224
     batch_size = 32
-    
-    start_epoch = 0        # liczba epok już przeprowadzonych
-    total_epochs = 10        # do ilu epok chcesz dociągnąć model
-    continue_training = False 
+    start_epoch = 10       # liczba epok już przeprowadzonych
+    total_epochs = 15       # do ilu epok chcesz dociągnąć model
+    continue_training = True 
 
     # Ścieżki wyjściowe
     processed_dir = os.path.join(output_directory, "processed")
@@ -51,7 +50,7 @@ if __name__ == "__main__":
         print(f"\n🧠 Trenuję model: {model_name}")
     
         if continue_training:
-            checkpoint_path = f"{model_name}_best_model.pt"
+            checkpoint_path = os.path.join("models", model_name, "best_model.pt")
             if os.path.exists(checkpoint_path):
                 print(f"🔄 Wczytywanie modelu z {checkpoint_path}")
                 model.load_state_dict(torch.load(checkpoint_path, map_location=device))
