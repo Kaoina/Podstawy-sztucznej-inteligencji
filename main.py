@@ -25,18 +25,16 @@ if __name__ == "__main__":
     # Parametry
     img_size = 224
     batch_size = 32
-    num_epochs = 10 
-
+    
+    start_epoch = 0        # liczba epok już przeprowadzonych
+    total_epochs = 10        # do ilu epok chcesz dociągnąć model
+    continue_training = False 
 
     # Ścieżki wyjściowe
     processed_dir = os.path.join(output_directory, "processed")
     split_dir = os.path.join(output_directory, "split")
 
     data_loaders = create_data_loaders(split_dir, batch_size=batch_size, img_size=img_size)
-
-    # 🔍 Debug: sprawdzenie poprawnej liczby klas i ich mapowania
-    print("Liczba klas:", len(data_loaders['train_dataset'].label_to_idx))
-    print("Mapowanie klas:", data_loaders['train_dataset'].label_to_idx)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(f"Używane urządzenie: {device}")
@@ -52,6 +50,14 @@ if __name__ == "__main__":
     for model_name, model in models_to_train.items():
         print(f"\n🧠 Trenuję model: {model_name}")
     
+        if continue_training:
+            checkpoint_path = f"{model_name}_best_model.pt"
+            if os.path.exists(checkpoint_path):
+                print(f"🔄 Wczytywanie modelu z {checkpoint_path}")
+                model.load_state_dict(torch.load(checkpoint_path, map_location=device))
+            else:
+                print(f"⚠️ Nie znaleziono {checkpoint_path}. Trening rozpocznie się od zera.")
+
         model = model.to(device)
         criterion = nn.CrossEntropyLoss()
         optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
@@ -62,8 +68,9 @@ if __name__ == "__main__":
                                                 data_loaders['val_loader'], 
                                                 criterion, optimizer, 
                                                 device, 
-                                                num_epochs=10,
-                                                model_name=model_name
+                                                model_name=model_name,
+                                                num_epochs=total_epochs - start_epoch,
+                                                start_epoch=start_epoch
                                                 )
             print(f"✅ Trenowanie zakończone dla modelu {model_name}")
             print("\n📋 Podsumowanie treningu:")

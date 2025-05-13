@@ -33,11 +33,13 @@ def plot_confusion_matrix(y_true, y_pred, classes, save_path=None):
     #plt.show()
 
 # Funkcja do rysowania wykresów strat i dokładności
-def plot_training_history(train_losses, val_losses, train_accs, val_accs, save_path=None):
+def plot_training_history(train_losses, val_losses, train_accs, val_accs, model_name="", save_path=None):
     epochs = range(1, len(train_losses) + 1)
     
     plt.figure(figsize=(12, 5))
     
+    plt.suptitle(f'{model_name} – Historia treningu', fontsize=16)
+
     # Wykres funkcji straty
     plt.subplot(1, 2, 1)
     plt.plot(epochs, train_losses, 'b-', label='Strata treningowa')
@@ -51,7 +53,7 @@ def plot_training_history(train_losses, val_losses, train_accs, val_accs, save_p
     plt.subplot(1, 2, 2)
     plt.plot(epochs, train_accs, 'b-', label='Dokładność treningowa')
     plt.plot(epochs, val_accs, 'r-', label='Dokładność walidacyjna')
-    plt.title('Dokładność modelu')
+    plt.title('Dokładność')
     plt.xlabel('Epoki')
     plt.ylabel('Dokładność [%]')
     plt.legend()
@@ -143,12 +145,14 @@ def evaluate_model(model, val_loader, device, model_name, calc_metrics=False):
     
     return acc, avg_val_loss
 
-def train_model(model, train_loader, val_loader, criterion, optimizer, device, model_name, num_epochs=10):
+def train_model(model, train_loader, val_loader, criterion, optimizer, device, model_name, num_epochs=10, start_epoch=0):
     torch.autograd.set_detect_anomaly(True)
     model = model.to(device)
     
     plot_dir = os.path.join("training_plots", model_name)
+    model_dir = os.path.join("models", model_name)
     os.makedirs(plot_dir, exist_ok=True)
+    os.makedirs(model_dir, exist_ok=True)
 
     train_losses = []
     val_losses = []
@@ -158,14 +162,16 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, m
     best_val_acc = 0.0
 
     for epoch in range(num_epochs):
-        print(f"\n--- Epoch {epoch+1}/{num_epochs} ---")
+        current_epoch = start_epoch + epoch + 1
+        print(f"\n--- Epoka {current_epoch}/{start_epoch + num_epochs} ---")
+        
         start_time = time.time()
 
         model.train()
         running_loss = 0.0
         correct, total = 0, 0
 
-        pbar = tqdm(train_loader, desc=f"Epoch {epoch+1}", unit="batch")
+        pbar = tqdm(train_loader, desc=f"Epoka {current_epoch}", unit="batch")
 
         for i, (inputs, labels, _) in enumerate(pbar):
             inputs, labels = inputs.to(device), labels.to(device)
@@ -201,12 +207,15 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, m
         val_losses.append(val_loss)
         val_accs.append(val_acc)
         
-        # torch.save(model.state_dict(), f"{model_name}_epoch_{epoch+1}.pt")
-        # print(f"💾 Zapisano model po epoce {epoch+1}")
+        #Zapisy modelu
+        epoch_path = os.path.join(model_dir, f"epoch_{epoch+1}.pt")
+        torch.save(model.state_dict(), epoch_path)
+        print(f"💾 Zapisano model z epoki {epoch+1} do {epoch_path}")
         
         if val_acc > best_val_acc:
             best_val_acc = val_acc
-            torch.save(model.state_dict(), f"{model_name}_best_model.pt")
+            best_path = os.path.join(model_dir, "best_model.pt")
+            torch.save(model.state_dict(), best_path)
             print(f"🏆 Nowy najlepszy model z dokładnością {val_acc:.2f}%")
 
         print(f"Epoch time: {time.time() - start_time:.2f}s")
@@ -215,7 +224,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, m
         
         if (epoch + 1) % 3 == 0 or (epoch + 1) == num_epochs:
             plot_training_history(
-                train_losses, val_losses, train_accs, val_accs,
+                train_losses, val_losses, train_accs, val_accs, model_name=model_name,
                 save_path=os.path.join(plot_dir, f"training_history_epoch_{epoch+1}.png")
             )
 
@@ -226,17 +235,30 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, m
     model.load_state_dict(torch.load(f"{model_name}_best_model.pt"))
     final_results = evaluate_model(model, val_loader, device, model_name, calc_metrics=True)
 
-    plot_training_history(train_losses, val_losses, train_accs, val_accs, save_path=os.path.join(plot_dir, "final_training_history.png"))
+    plot_training_history(train_losses, val_losses, train_accs, val_accs, model_name=model_name, save_path=os.path.join(plot_dir, "final_training_history.png"))
 
     
     history_df = pd.DataFrame({
-        'Epoka': range(1, num_epochs + 1),
-        'Strata_treningowa': train_losses,
-        'Strata_walidacyjna': val_losses,
-        'Dokładność_treningowa': train_accs,
-        'Dokładność_walidacyjna': val_accs
+    'Epoka': range(1, num_epochs + 1),
+    'Strata_treningowa': train_losses,
+    'Strata_walidacyjna': val_losses,
+    'Dokładność_treningowa': train_accs,
+    'Dokładność_walidacyjna': val_accs
     })
-    history_df.to_csv(f'{model_name}_training_history.csv', index=False)
-    print("📊 Zapisano historię treningu do training_history.csv")
+
+    csv_path = os.path.join(model_dir, f'{model_name}_training_history.csv')
+
+    # Jeśli plik już istnieje — wczytaj i dopisz nowe epoki
+    if os.path.exists(csv_path):
+        old_df = pd.read_csv(csv_path)
+        # Upewnij się, że numeracja epok się zgadza
+        offset = old_df['Epoka'].max()
+        history_df['Epoka'] = history_df['Epoka'] + offset
+        full_df = pd.concat([old_df, history_df], ignore_index=True)
+    else:
+        full_df = history_df
+
+    full_df.to_csv(csv_path, index=False)
+    print(f"📊 Zapisano/uzupełniono historię treningu w {csv_path}")
     
-    return history_df, final_results
+    return full_df, final_results
