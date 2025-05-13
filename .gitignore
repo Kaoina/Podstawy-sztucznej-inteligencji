@@ -1,0 +1,8 @@
+#Ignore folders:
+Modeles/
+Matrics/
+
+#Ingore files with extensions:
+*.png
+*.csv
+*.pt
