@@ -1,6 +1,6 @@
 #Ignore folders:
 Models/
-Matrics/
+Metrics/
 __pycache__/
 
 #Ingore files with extensions:
