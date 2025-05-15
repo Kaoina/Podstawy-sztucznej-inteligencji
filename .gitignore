@@ -1,8 +1,9 @@
 #Ignore folders:
-Modeles/
+Models/
 Matrics/
+#__pycache__/
 
 #Ingore files with extensions:
-*.png
-*.csv
+#*.png
+#*.csv
 *.pt
