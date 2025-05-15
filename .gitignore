@@ -1,7 +1,7 @@
 #Ignore folders:
 Models/
 Matrics/
-#__pycache__/
+__pycache__/
 
 #Ingore files with extensions:
 #*.png
