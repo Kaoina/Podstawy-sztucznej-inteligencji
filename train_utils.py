@@ -76,7 +76,6 @@ def evaluate_model(model, val_loader, device, model_name, calc_metrics=False):
     criterion = nn.CrossEntropyLoss()
 
     print("🔍 Rozpoczynam evaluate_model...")
-    print(f"🧪 Liczba batchy w val_loader: {len(val_loader)}")
 
     with torch.no_grad():
         for batch_idx, (inputs, labels, img_paths) in enumerate(tqdm(val_loader, desc="🧪 Walidacja")):
@@ -208,9 +207,9 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, m
         val_accs.append(val_acc)
         
         #Zapisy modelu
-        epoch_path = os.path.join(model_dir, f"epoch_{epoch+1}.pt")
+        epoch_path = os.path.join(model_dir, f"epoch_{current_epoch}.pt")
         torch.save(model.state_dict(), epoch_path)
-        print(f"💾 Zapisano model z epoki {epoch+1} do {epoch_path}")
+        print(f"💾 Zapisano model z epoki {current_epoch} do {epoch_path}")
         
         if val_acc > best_val_acc:
             best_val_acc = val_acc
@@ -222,17 +221,24 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, m
         print(f"Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.2f}% | Val Loss: {val_loss:.4f} | Val Acc: {val_acc:.2f}%")
         torch.cuda.empty_cache()
         
-        if (epoch + 1) % 3 == 0 or (epoch + 1) == num_epochs:
+        if (current_epoch + 1) == num_epochs:
             plot_training_history(
                 train_losses, val_losses, train_accs, val_accs, model_name=model_name,
-                save_path=os.path.join(plot_dir, f"training_history_epoch_{epoch+1}.png")
+                save_path=os.path.join(plot_dir, f"training_history_epoch_{current_epoch}.png")
             )
 
         
-        print(f"✔️ Zakończono epokę {epoch+1}")
+        print(f"✔️ Zakończono epokę {current_epoch}")
     
     print("\n🏁 Ewaluacja końcowa modelu...")
-    model.load_state_dict(torch.load(f"{model_name}_best_model.pt"))
+    best_model_path = os.path.join(model_dir, "best_model.pt")
+    if os.path.exists(best_model_path):
+        model.load_state_dict(torch.load(best_model_path))
+    else:
+        print(f"⚠️ Nie znaleziono pliku z najlepszym modelem: {best_model_path}")
+        print("⏭️ Pomijam ewaluację końcową.")
+        return None, None
+
     final_results = evaluate_model(model, val_loader, device, model_name, calc_metrics=True)
 
     plot_training_history(train_losses, val_losses, train_accs, val_accs, model_name=model_name, save_path=os.path.join(plot_dir, "final_training_history.png"))
