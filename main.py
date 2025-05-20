@@ -44,8 +44,8 @@ if __name__ == "__main__":
 
     models_to_train = {
         #"CustomCNN": ArtStyleCNN(num_classes),
-        "ResNet18_pretrained": get_resnet_model(num_classes, pretrained=True),
-        #"ResNet18_scratch": get_resnet_model(num_classes, pretrained=False)
+        #"ResNet18_pretrained": get_resnet_model(num_classes, pretrained=True),
+        "ResNet18_scratch": get_resnet_model(num_classes, pretrained=False)
     }
     
     for model_name, model in models_to_train.items():
@@ -136,7 +136,7 @@ if __name__ == "__main__":
                 # os.makedirs(plot_dir, exist_ok=True)
                 
                 plt.figure(figsize=(12, 5))
-                plt.suptitle(f'{model_name} – Pełna historia treningu ({len(full_history)} epok)', fontsize=16)
+                plt.suptitle(f"{model_name}  Pełna historia treningu ({full_history['Epoka'].max()} epok)", fontsize=16)
                 
                 # Wykres funkcji straty
                 plt.subplot(1, 2, 1)
