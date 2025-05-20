@@ -148,8 +148,8 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, m
     torch.autograd.set_detect_anomaly(True)
     model = model.to(device)
     
-    plot_dir = os.path.join("training_plots", model_name)
-    model_dir = os.path.join("models", model_name)
+    plot_dir = os.path.join("Metrics", model_name)
+    model_dir = os.path.join("Models", model_name)
     os.makedirs(plot_dir, exist_ok=True)
     os.makedirs(model_dir, exist_ok=True)
 
@@ -241,7 +241,7 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, m
 
     final_results = evaluate_model(model, val_loader, device, model_name, calc_metrics=True)
 
-    plot_training_history(train_losses, val_losses, train_accs, val_accs, model_name=model_name, save_path=os.path.join(plot_dir, "final_training_history.png"))
+    plot_training_history(train_losses, val_losses, train_accs, val_accs, model_name=model_name, save_path=os.path.join(plot_dir, "full_training_history.png"))
 
     
     history_df = pd.DataFrame({

@@ -117,6 +117,6 @@ def main():
     print(f"🖼️ Przykładowe predykcje zapisane w {sample_vis_path}")
 
 if __name__ == "__main__":
-    import multiprocessing
-    multiprocessing.freeze_support()
+    # import multiprocessing
+    # multiprocessing.freeze_support()
     main()
