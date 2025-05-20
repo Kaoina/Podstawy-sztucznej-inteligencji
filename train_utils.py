@@ -127,9 +127,13 @@ def evaluate_model(model, val_loader, device, model_name, calc_metrics=False):
         
         print("\n📝 Szczegółowy raport klasyfikacji:")
         print(classification_report(all_labels, all_preds, target_names=class_names))
-        
+    
+
         print("\n🧩 Tworzę macierz pomyłek...")
-        plot_confusion_matrix(all_labels, all_preds, class_names, save_path=f"{model_name}_confusion_matrix.png")
+        model_dir = os.path.join("Models", model_name)
+        save_path = os.path.join(model_dir, f'{model_name}_confusion_matrix.png')
+        plot_confusion_matrix(all_labels, all_preds, class_names, save_path=save_path)
+        
         
         metrics_df = pd.DataFrame(
             precision_recall_fscore_support(all_labels, all_preds),
@@ -207,9 +211,9 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, m
         val_accs.append(val_acc)
         
         #Zapisy modelu
-        epoch_path = os.path.join(model_dir, f"epoch_{current_epoch}.pt")
-        torch.save(model.state_dict(), epoch_path)
-        print(f"💾 Zapisano model z epoki {current_epoch} do {epoch_path}")
+        # epoch_path = os.path.join(model_dir, f"epoch_{current_epoch}.pt")
+        # torch.save(model.state_dict(), epoch_path)
+        # print(f"💾 Zapisano model z epoki {current_epoch} do {epoch_path}")
         
         if val_acc > best_val_acc:
             best_val_acc = val_acc

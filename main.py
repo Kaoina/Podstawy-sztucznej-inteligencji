@@ -28,8 +28,8 @@ if __name__ == "__main__":
     img_size = 224
     batch_size = 32
     
-    total_epochs = 17        # do ilu epok chcesz dociągnąć model
-    continue_training = True 
+    total_epochs = 10        # do ilu epok chcesz dociągnąć model
+    continue_training = False 
 
     # Ścieżki wyjściowe
     processed_dir = os.path.join(output_directory, "processed")
@@ -44,9 +44,9 @@ if __name__ == "__main__":
     print(f"Używane urządzenie: {device}")
 
     models_to_train = {
-        #"CustomCNN": ArtStyleCNN(num_classes),
+        "CustomCNN": ArtStyleCNN(num_classes),
         "ResNet18_pretrained": get_resnet_model(num_classes, pretrained=True),
-        #"ResNet18_scratch": get_resnet_model(num_classes, pretrained=False)
+        "ResNet18_scratch": get_resnet_model(num_classes, pretrained=False)
     }
     
     for model_name, model in models_to_train.items():
@@ -90,12 +90,13 @@ if __name__ == "__main__":
         optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
 
         try:
+            epochs_to_train = total_epochs
 
-            epochs_to_train = total_epochs - int(previous_history['Epoka'].max())
-
-            if epochs_to_train <= 0:
-                print(f"⚠️ Model juz zostal wytenowany do podanej epoki")
-                break
+            if continue_training:
+                epochs_to_train = total_epochs - int(previous_history['Epoka'].max())
+                if epochs_to_train <= 0:
+                    print(f"⚠️ Model juz zostal wytenowany do podanej epoki")
+                    break
 
 
             print(f"\n🧠 Trenuję model: {model_name}")

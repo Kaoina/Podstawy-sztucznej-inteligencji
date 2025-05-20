@@ -2,6 +2,7 @@
 Models/
 Metrics/
 __pycache__/
+inference_outputs/
 
 #Ingore files with extensions:
 #*.png
