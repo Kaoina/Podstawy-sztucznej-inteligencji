@@ -28,13 +28,12 @@ if __name__ == "__main__":
     img_size = 224
     batch_size = 32
     
-    total_epochs = 10        # do ilu epok chcesz dociągnąć model
-    continue_training = False 
+    total_epochs = 15        # do ilu epok chcesz dociągnąć model
+    continue_training = True 
 
     # Ścieżki wyjściowe
     processed_dir = os.path.join(output_directory, "processed")
     split_dir = os.path.join(output_directory, "split")
-    #history_path = "ResNet18_pretrainded_training_history" 
 
     data_loaders = create_data_loaders(split_dir, batch_size=batch_size, img_size=img_size)
 
@@ -44,9 +43,9 @@ if __name__ == "__main__":
     print(f"Używane urządzenie: {device}")
 
     models_to_train = {
-        "CustomCNN": ArtStyleCNN(num_classes),
+        #"CustomCNN": ArtStyleCNN(num_classes),
         "ResNet18_pretrained": get_resnet_model(num_classes, pretrained=True),
-        "ResNet18_scratch": get_resnet_model(num_classes, pretrained=False)
+        #"ResNet18_scratch": get_resnet_model(num_classes, pretrained=False)
     }
     
     for model_name, model in models_to_train.items():

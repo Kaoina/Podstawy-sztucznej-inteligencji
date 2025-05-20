@@ -225,11 +225,11 @@ def train_model(model, train_loader, val_loader, criterion, optimizer, device, m
         print(f"Train Loss: {train_loss:.4f} | Train Acc: {train_acc:.2f}% | Val Loss: {val_loss:.4f} | Val Acc: {val_acc:.2f}%")
         torch.cuda.empty_cache()
         
-        if (current_epoch + 1) == num_epochs:
-            plot_training_history(
-                train_losses, val_losses, train_accs, val_accs, model_name=model_name,
-                save_path=os.path.join(plot_dir, f"training_history_epoch_{current_epoch}.png")
-            )
+        # if (current_epoch) == num_epochs:
+        #     plot_training_history(
+        #         train_losses, val_losses, train_accs, val_accs, model_name=model_name,
+        #         save_path=os.path.join(plot_dir, f"training_history_epoch_{current_epoch}.png")
+        #     )
 
         
         print(f"✔️ Zakończono epokę {current_epoch}")

@@ -453,11 +453,11 @@ input_directory = r"C:\Users\Dominik\Desktop\DataSet"
 output_directory = r"C:\Users\Dominik\Desktop\outData"
 
 # Parametry
-target_size = (512, 512)
+target_size = (224, 224)
 img_size = 224
 batch_size = 32
-min_class_size = 2000
-max_class_size = 3000
+min_class_size = 2400
+max_class_size = 2500
 
 # Ścieżki wyjściowe
 processed_dir = os.path.join(output_directory, "processed")

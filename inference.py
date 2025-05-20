@@ -18,7 +18,8 @@ from torchvision.utils import make_grid
 
 # === PARAMETRY ===
 model_name = "ResNet18_pretrained"
-model_path = f"Models/{model_name}_best_model.pt"
+model_dir = os.path.join("Models", model_name)
+model_path = os.path.join(model_dir, f"best_model.pt")
 data_dir = r"C:\Users\Dominik\Desktop\outData\split"
 output_dir = f"inference_outputs/{model_name}"
 os.makedirs(output_dir, exist_ok=True)
@@ -37,7 +38,8 @@ def main():
     num_classes = len(idx_to_label)
 
     # === WCZYTYWANIE MODELU ===
-    model = get_resnet_model(num_classes, pretrained=False)
+    #model = ArtStyleCNN(num_classes)
+    model = get_resnet_model(num_classes, pretrained=True)
     model.load_state_dict(torch.load(model_path, map_location=device))
     model.to(device)
     model.eval()
