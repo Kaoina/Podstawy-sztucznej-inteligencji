@@ -11,7 +11,7 @@ from models import get_resnet_model
 from tqdm import tqdm
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.metrics import classification_report, confusion_matrix
+from sklearn.metrics import classification_report, confusion_matrix, accuracy_score, f1_score, recall_score, precision_score
 import random
 from torchvision.utils import make_grid
 
@@ -58,6 +58,20 @@ def main():
             all_preds.extend(predicted.cpu().numpy())
             all_labels.extend(labels.numpy())
             all_paths.extend(paths)
+
+    accuracy = accuracy_score(all_labels, all_preds) * 100  # w %
+    precision = precision_score(all_labels, all_preds, average='macro')
+    recall = recall_score(all_labels, all_preds, average='macro')
+    f1 = f1_score(all_labels, all_preds, average='macro')
+
+    final_metrics = (accuracy, len(all_labels), precision, recall, f1)
+
+    # === WYPISANIE METRYK ===
+    print(f"\n📊 Finalne metryki:")
+    print(f" - Accuracy: {final_metrics[0]:.2f}%")
+    print(f" - Precision: {final_metrics[2]:.4f}")
+    print(f" - Recall: {final_metrics[3]:.4f}")
+    print(f" - F1-Score: {final_metrics[4]:.4f}")
 
     # === MAPOWANIE I ZAPIS WYNIKÓW ===
     results_df = pd.DataFrame({
